@@ -121,7 +121,8 @@ class BarangTransaksiController extends Controller
                 );
             }
 
-            $sisaStok = $this->modelBarangStok->where('barang_id', $barang['id'])->sum('qty');
+            $sisaStok = $this->modelBarangStok->where('barang_id', $barang['id'])
+                ->where('qty', '>', 0)->sum('qty');
             if (!$input['is_masuk'] && $input['qty'] > $sisaStok) {
                 return BaseResponse::error(
                     null, 
