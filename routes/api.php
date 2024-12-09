@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BarangController;
 use App\Http\Controllers\BarangKategoriController;
 use App\Http\Controllers\BarangTransaksiController;
@@ -26,6 +27,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
  * Manage Barang
  * =============================================================================
  */
+
+Route::post('/login', [AuthController::class, 'login']);
+Route::get('/profile', [AuthController::class, 'profile'])->middleware('auth');
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
+Route::post('/register', [AuthController::class, 'register']);
 
 Route::prefix('barang')->name('barang.')->group(function () {
     // kategori
