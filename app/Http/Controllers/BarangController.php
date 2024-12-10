@@ -20,42 +20,77 @@ class BarangController extends Controller
     {
         $this->model = $model;
     }
-    
+
     /**
      * List barang
-     * 
+     *
      * @param \Illuminate\Http\Request $request
-     * 
+     *
      * @return array
      */
     public function list(Request $request)
-    {
-        // query
-        $query = $this->model->query();
-        if ($request->input('with')) {
-            $query->with($request->input('with'));
-        }
-        $query->when($request->input('kategori_id'), function ($queryB, $kategoriId) {
-            return $queryB->where('kategori_id', $kategoriId);
-        });
-        $query->when($request->input('q'), function ($query, $q) {
-            return $query->where('kode', 'LIKE', '%'.$q.'%')
-                ->orWhere('nama', 'LIKE', '%'.$q.'%');
-        });
-        $result = $query->get()->toArray();
+{
+    // Initialize query
+    $query = $this->model->query();
 
-        return BaseResponse::success(
-            $result, 
-            'Get list barang berhasil'
-        );
+    // Load 'kategori' relation if necessary
+    $query->with(['kategori' => function ($query) {
+        $query->select('id', 'nama');
+    }]);
+
+    // Handle additional with-relations dynamically
+    if ($request->input('with')) {
+        $query->with($request->input('with'));
     }
+
+    // Apply filters if provided
+    $query->when($request->input('kategori_id'), function ($queryB, $kategoriId) {
+        return $queryB->where('kategori_id', $kategoriId);
+    });
+
+    $query->when($request->input('q'), function ($query, $q) {
+        return $query->where('kode', 'LIKE', "%$q%")
+                     ->orWhere('nama', 'LIKE', "%$q%");
+    });
+
+    // Execute query
+    $rawResult = $query->get();
+
+    // Map the data conditionally
+    $mappedResult = $rawResult->map(function ($item) {
+        return [
+            'id' => $item->id,
+            'kode' => $item->kode,
+            'nama' => $item->nama,
+            'kategori_id' => $item->kategori_id,
+            'nama_kategori' => optional($item->kategori)->nama ?? 'No Kategori' // Dynamically fetch name
+        ];
+    });
+
+    // Convert to array
+    // $resultArray = $mappedResult->toArray();
+
+    // Show raw `$result`
+    $result = $rawResult->toArray();
+
+    return BaseResponse::success(
+        [
+            // 'mappedResult' => $resultArray,
+            'barang' => $result
+        ],
+        'Get list barang berhasil'
+    );
+}
+
+
+
 
     /**
      * Get data barang
-     * 
+     *
      * @param int   $id
      * @param array $params
-     * 
+     *
      * @return mixed
      */
     private function getBarang($id, $params = [])
@@ -68,7 +103,7 @@ class BarangController extends Controller
 
         if (!$barang) {
             return BaseResponse::error(
-                $barang, 
+                $barang,
                 'Get data barang gagal',
                 [],
                 404
@@ -90,7 +125,7 @@ class BarangController extends Controller
         $input = $request->all();
 
         try {
-            
+
             $create = $this->model->create([
                 'created_by' => null,//Auth::user()['id'],
                 'kategori_id' => $input['kategori_id'],
@@ -107,8 +142,8 @@ class BarangController extends Controller
 
         } catch (Exception $e) {
             return BaseResponse::error(
-                null, 
-                'Tambah barang gagal. Error : '.$e->getMessage(), 
+                null,
+                'Tambah barang gagal. Error : '.$e->getMessage(),
                 $e->getCode()
             );
         }
@@ -116,16 +151,16 @@ class BarangController extends Controller
 
     /**
     * Get detail barang
-    * 
+    *
     * @param \Illuminate\Http\Request $request
     * @param int                      $id
-    * 
+    *
     * @return array
     */
     public function show(Request $request, $id)
     {
         $params = $request->all();
-        
+
         try {
 
             $barang = $this->getBarang($id, $params);
@@ -134,14 +169,14 @@ class BarangController extends Controller
             }
 
             return BaseResponse::success(
-                $barang, 
+                $barang,
                 'Get detail barang berhasil'
             );
 
         } catch (Exception $e) {
             return BaseResponse::error(
-                null, 
-                'Get detail barang gagal. Error : '.$e->getMessage(), 
+                null,
+                'Get detail barang gagal. Error : '.$e->getMessage(),
                 $e->getCode()
             );
         }
@@ -160,7 +195,7 @@ class BarangController extends Controller
         $input = $request->all();
 
         try {
-            
+
             $barang = $this->getBarang($id);
             if (isset($barang['status']) && !$barang['status']) {
                 return $barang;
@@ -183,8 +218,8 @@ class BarangController extends Controller
 
         } catch (Exception $e) {
             return BaseResponse::error(
-                null, 
-                'Edit barang gagal. Error : '.$e->getMessage(), 
+                null,
+                'Edit barang gagal. Error : '.$e->getMessage(),
                 $e->getCode()
             );
         }
@@ -200,7 +235,7 @@ class BarangController extends Controller
     public function delete($id)
     {
         try {
-            
+
             $barang = $this->getBarang($id);
             if (isset($barang['status']) && !$barang['status']) {
                 return $barang;
@@ -215,8 +250,8 @@ class BarangController extends Controller
 
         } catch (Exception $e) {
             return BaseResponse::error(
-                null, 
-                'Delete barang gagal. Error : '.$e->getMessage(), 
+                null,
+                'Delete barang gagal. Error : '.$e->getMessage(),
                 $e->getCode()
             );
         }

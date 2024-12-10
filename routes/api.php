@@ -29,7 +29,12 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
  */
 
 Route::post('/login', [AuthController::class, 'login']);
-Route::get('/profile', [AuthController::class, 'profile'])->middleware('auth');
+Route::middleware(['auth:sanctum'])->get('/profile', function (Request $request) {
+    return response()->json($request->user());
+});
+
+Route::middleware(['auth:sanctum'])->put('/profile', [AuthController::class, 'updateProfile']);
+
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
 Route::post('/register', [AuthController::class, 'register']);
 
